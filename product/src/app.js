@@ -32,13 +32,13 @@ class App {
     this.app.use(express.urlencoded({ extended: false }));
   }
 
-  // setRoutes() {
-  //   this.app.use("/api/products", productsRouter);
-  // }
-
   setRoutes() {
-    this.app.use("/products", productsRouter);
+    this.app.use("/api/products", productsRouter);
   }
+
+  // setRoutes() {
+  //   this.app.use("/products", productsRouter);
+  // }
 
   setupMessageBroker() {
     MessageBroker.connect();
