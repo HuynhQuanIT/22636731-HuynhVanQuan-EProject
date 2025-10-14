@@ -1,4 +1,4 @@
-# EProject Phase 1 - Microservices Demo
+### EProject Phase 1 - Microservices Demo
 
 ## Giới thiệu ngắn
 
@@ -13,14 +13,9 @@ RabbitMQ được sử dụng làm message broker giữa các service (queue tê
 
 > Lưu ý: dự án này chỉ phục vụ cho mục đích học tập, không dùng cho production.
 
-## Cấu trúc chính
-# 🧱 EProject-Phase-1 – Microservices System (Docker Compose Edition)
-
-Hệ thống **EProject-Phase-1** mô phỏng mô hình **thương mại điện tử** gồm nhiều microservice giao tiếp qua **RabbitMQ** và **MongoDB**.
-
 ---
 
-## 📁 Cấu trúc thư mục
+## Cấu trúc thư mục
 
 ```
 EProject-Phase-1/
@@ -50,27 +45,52 @@ Sau khi MongoDB và RabbitMQ ổn định:
 ---
 
 ## 🧩 Thử nghiệm dự án với POSTMAN
-**Auth Service**
+
+### Auth Service
+
+**1. Đăng ký (Register)**
 
 ![Register](img/testLocalhost/register.png)
+
+**2. Đăng nhập (Login)**
+
 ![Login](img/testLocalhost/login.png)
+
+**3. Truy cập Dashboard**
+
 ![Dashboard](img/testLocalhost/dashboard.png)
 
-**Product Service**
+### Product Service
+
+**4. Tạo sản phẩm (Create Product)**
 
 ![createProduct](img/testLocalhost/createProduct.png)
+
+**5. Lấy danh sách sản phẩm (Get Products)**
+
 ![getProduct](img/testLocalhost/getProducts.png)
+
+**6. Mua sản phẩm (Buy Product - Create Order)**
+
 ![buyProduct](img/testLocalhost/createOrder.png)
 
-**DataBase**
+### Database (MongoDB)
+
+**7. Dữ liệu Users**
 
 ![dataUsers](img/testLocalhost/dbUsers.png)
+
+**8. Dữ liệu Products**
+
 ![dataProduct](img/testLocalhost/dbProducts.png)
+
+**9. Dữ liệu Orders**
+
 ![dataOrder](img/testLocalhost/dbOrders.png)
 
 ---
 
-## 👨‍💻 Tác giả
+## Tác giả
 
 - **Sinh viên:** Huỳnh Văn Quân
 - **Mã SV:** 22636731
