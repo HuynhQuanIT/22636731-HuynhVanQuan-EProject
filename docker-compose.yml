@@ -12,11 +12,11 @@ services:
 
   mongodb:
     image: mongo:6.0
+    container_name: mongodb
     ports:
-      - "27018:27017"
+      - "27017:27017"
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=mongoadmin
-      - MONGO_INITDB_ROOT_PASSWORD=secret
+      MONGO_INITDB_DATABASE: eproject
     volumes:
       - mongodb_data:/data/db
 
@@ -26,8 +26,9 @@ services:
       - "3003:3003"
     depends_on:
       - auth
+      - product
+      - order
     environment:
-      - NODE_ENV=production
       - JWT_SECRET=mysecretkey
 
   auth:
@@ -37,8 +38,7 @@ services:
     depends_on:
       - mongodb
     environment:
-      - NODE_ENV=production
-      - MONGODB_AUTH_URI=mongodb://mongoadmin:secret@mongodb:27017/
+      - MONGODB_AUTH_URI=mongodb://mongodb:27017/auth_service
       - JWT_SECRET=mysecretkey
 
   order:
@@ -49,9 +49,8 @@ services:
       - rabbitmq
       - mongodb
     environment:
-      - NODE_ENV=production
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - MONGODB_ORDER_URI=mongodb://mongoadmin:secret@mongodb:27017/
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGODB_ORDER_URI=mongodb://mongodb:27017/order_service
       - JWT_SECRET=mysecretkey
 
   product:
@@ -62,11 +61,9 @@ services:
       - rabbitmq
       - mongodb
     environment:
-      - NODE_ENV=production
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - MONGODB_PRODUCT_URI=mongodb://mongoadmin:secret@mongodb:27017/
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGODB_PRODUCT_URI=mongodb://mongodb:27017/product_service
       - JWT_SECRET=mysecretkey
-      - MONGODB_AUTH_URI=mongodb://mongoadmin:secret@mongodb:27017/
 
 volumes:
   mongodb_data:
