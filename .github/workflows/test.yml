@@ -7,120 +7,73 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    name: Run Tests
+  build-and-run:
+    name: build-and-run
     runs-on: ubuntu-latest
     
-    services:
-      mongodb:
-        image: mongo:6.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand({ping: 1})'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      
-      rabbitmq:
-        image: rabbitmq:3-management
-        ports:
-          - 5672:5672
-          - 15672:15672
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmq-diagnostics ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - name: Checkout source code from repository
+      uses: actions/checkout@v4
+    
+    - name: Build Docker images for all microservices
+      run: docker compose build
+    
+    - name: Create environment variables file
+      run: |
+        echo "MONGODB_AUTH_URI=mongodb://mongodb:27017/auth_service" > .env.test
+        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.test
+        echo "MONGODB_PRODUCT_URI=mongodb://mongodb:27017/product_service" >> .env.test
+        echo "RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672" >> .env.test
+        echo "MONGODB_ORDER_URI=mongodb://mongodb:27017/order_service" >> .env.test
+        echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> .env.test
+        echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> .env.test
+    
+    - name: Start all Docker containers
+      run: docker compose up -d
+    
+    - name: Wait for services startup
+      run: |
+        echo "Waiting for services to be ready..."
+        sleep 45
+        docker compose ps
+  
+    - name: Run unit tests (auth)
+      run: |
+        echo "Running auth service tests..."
+        docker exec -e MONGODB_AUTH_URI=mongodb://mongodb:27017/auth_service auth-service npm test
+    
+    - name: Run unit tests (product)
+      run: |
+        echo "Running product service tests..."
+        docker exec -e AUTH_SERVICE_URL=http://auth-service:3000 -e PRODUCT_SERVICE_URL=http://product-service:3001 product-service npm test
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
+    - name: Stop and remove containers after testing
+      run: docker compose down -v
+
+  deploys:
+    name: deploys
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout source code from repository
+      uses: actions/checkout@v4
+    
+    - name: Rebuild Docker images for deployment
+      run: docker compose build
+    
+    - name: Login to Docker Hub registry
+      uses: docker/login-action@v3
       with:
-        node-version: '18'
-        cache: 'npm'
-
-    - name: Create environment files
-      run: |
-        echo "MONGODB_AUTH_URI=mongodb://localhost:27017/auth_service" >> auth/.env
-        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> auth/.env
-        
-        echo "RABBITMQ_URL=amqp://guest:guest@localhost:5672" >> product/.env
-        echo "MONGODB_PRODUCT_URI=mongodb://localhost:27017/product_service" >> product/.env
-        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> product/.env
-        echo "LOGIN_TEST_USER=${{ secrets.LOGIN_TEST_USER }}" >> product/.env
-        echo "LOGIN_TEST_PASSWORD=${{ secrets.LOGIN_TEST_PASSWORD }}" >> product/.env
-        
-        echo "RABBITMQ_URL=amqp://guest:guest@localhost:5672" >> order/.env
-        echo "MONGODB_ORDER_URI=mongodb://localhost:27017/order_service" >> order/.env
-        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> order/.env
-
-    - name: Install dependencies
-      run: |
-        npm install --prefix auth
-        npm install --prefix product
-        npm install --prefix order
-        npm install --prefix api-gateway
-
-    - name: Wait for services to be ready
-      run: |
-        sleep 10
-
-    - name: Run Auth Service tests
-      run: npm test --prefix auth
-
-    - name: Run Product Service tests
-      run: |
-        cd auth && npm start &
-        sleep 5
-        cd product && npm test
-
-  build:
-    name: Build Docker Images
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
     
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Build API Gateway
-      run: docker build -t api-gateway:latest ./api-gateway
-
-    - name: Build Auth Service
-      run: docker build -t auth-service:latest ./auth
-
-    - name: Build Product Service
-      run: docker build -t product-service:latest ./product
-
-    - name: Build Order Service
-      run: docker build -t order-service:latest ./order
-
-    - name: Verify Docker Compose
-      run: docker-compose config
-
-  deploy:
-    name: Deploy (Optional)
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      
-    - name: Deploy notification
+    - name: Tag and push images to Docker Hub
       run: |
-        echo "All tests passed!"
-        echo "Docker images built successfully!"
-        echo "Ready for deployment!"
+        docker tag eproject-phase-1-auth:latest ${{ secrets.DOCKER_USERNAME }}/eproject-auth:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/eproject-auth:latest
+        docker tag eproject-phase-1-product:latest ${{ secrets.DOCKER_USERNAME }}/eproject-product:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/eproject-product:latest
+        docker tag eproject-phase-1-order:latest ${{ secrets.DOCKER_USERNAME }}/eproject-order:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/eproject-order:latest
+        docker tag eproject-phase-1-api-gateway:latest ${{ secrets.DOCKER_USERNAME }}/eproject-api-gateway:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/eproject-api-gateway:latest
