@@ -40,10 +40,6 @@ coverage/
 # TypeScript build
 *.tsbuildinfo
 
-# Docker
-docker-compose.yml
-docker-compose.override.yml
-
 .dockerignore
 package-lock.json
 yarn.lock
