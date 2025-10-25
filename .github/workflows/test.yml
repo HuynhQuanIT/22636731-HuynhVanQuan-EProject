@@ -63,10 +63,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm ci --prefix auth
-        npm ci --prefix product
-        npm ci --prefix order
-        npm ci --prefix api-gateway
+        npm install --prefix auth
+        npm install --prefix product
+        npm install --prefix order
+        npm install --prefix api-gateway
 
     - name: Wait for services to be ready
       run: |
