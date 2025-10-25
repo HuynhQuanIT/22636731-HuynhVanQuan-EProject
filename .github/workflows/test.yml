@@ -34,14 +34,14 @@ jobs:
     - name: Wait for services startup
       run: |
         echo "Waiting for services to be ready..."
-        sleep 1
+        sleep 10
         docker compose ps
   
     - name: Check service health
       run: |
         echo "Checking services are running..."
         docker compose ps
-        docker compose logs --tail=10
+        docker compose logs --tail=15
 
     - name: Stop and remove containers after testing
       run: docker compose down -v
