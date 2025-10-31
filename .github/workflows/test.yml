@@ -7,9 +7,47 @@ on:
     branches: [ main ]
 
 jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout source code from repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies for auth service
+      run: |
+        cd auth
+        npm install
+    
+    - name: Run auth service tests
+      env:
+        MONGODB_AUTH_URI: mongodb://localhost:27017/auth_service
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      run: |
+        cd auth
+        npm test
+
   build-and-run:
     name: build-and-run
     runs-on: ubuntu-latest
+    needs: test
     
     steps:
     - name: Checkout source code from repository
@@ -37,21 +75,18 @@ jobs:
         sleep 45
         docker compose ps
   
-    - name: Run unit tests (auth)
-      run: |
-        echo "Running auth service tests..."
-        docker exec -e MONGODB_AUTH_URI=mongodb://mongodb:27017/auth_service auth-service npm test
-    
-    - name: Run unit tests (product)
-      run: |
-        echo "Running product service tests..."
-        docker exec -e AUTH_SERVICE_URL=http://auth-service:3000 -e PRODUCT_SERVICE_URL=http://product-service:3001 product-service npm test
-  
     - name: Check service health
       run: |
-        echo "Checking services are running..."
+        echo "Checking all services are running..."
         docker compose ps
-        docker compose logs --tail=15
+        echo "--- Auth Service Logs ---"
+        docker compose logs --tail=20 auth
+        echo "--- Product Service Logs ---"
+        docker compose logs --tail=20 product
+        echo "--- Order Service Logs ---"
+        docker compose logs --tail=20 order
+        echo "--- API Gateway Logs ---"
+        docker compose logs --tail=20 api-gateway
 
     - name: Stop and remove containers after testing
       run: docker compose down -v
