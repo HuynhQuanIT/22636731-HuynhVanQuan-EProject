@@ -72,7 +72,7 @@ jobs:
     - name: Wait for services startup
       run: |
         echo "Waiting for services to be ready..."
-        sleep 15
+        sleep 11
         docker compose ps
   
     - name: Check service health
